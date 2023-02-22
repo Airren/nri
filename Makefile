@@ -20,7 +20,7 @@ PROTO_OPTIONS = --proto_path=. $(PROTO_INCLUDE) \
     --go-ttrpc_opt=paths=source_relative --go-ttrpc_out=.
 PROTO_COMPILE = PATH=$(PATH):$(shell go env GOPATH)/bin; protoc $(PROTO_OPTIONS)
 
-GO_CMD     := go
+GO_CMD     := GOOS=linux GOARCH=amd64 go
 GO_BUILD   := $(GO_CMD) build
 GO_INSTALL := $(GO_CMD) install
 GO_TEST    := $(GO_CMD) test
@@ -38,12 +38,13 @@ BIN_PATH      := $(BUILD_PATH)/bin
 COVERAGE_PATH := $(BUILD_PATH)/coverage
 
 PLUGINS := \
-	$(BIN_PATH)/logger \
-	$(BIN_PATH)/device-injector \
-	$(BIN_PATH)/hook-injector \
-	$(BIN_PATH)/differ \
-	$(BIN_PATH)/v010-adapter \
-	$(BIN_PATH)/template
+    $(BIN_PATH)/cni \
+#	$(BIN_PATH)/logger \
+#	$(BIN_PATH)/device-injector \
+#	$(BIN_PATH)/hook-injector \
+#	$(BIN_PATH)/differ \
+#	$(BIN_PATH)/v010-adapter \
+#	$(BIN_PATH)/template
 
 
 ifneq ($(V),1)
@@ -54,7 +55,7 @@ endif
 # top-level targets
 #
 
-all: build build-plugins
+all: build build-plugins cp-to-nuc
 
 build: build-proto build-check
 
@@ -88,6 +89,9 @@ clean-cache:
 #
 # plugins build targets
 #
+$(BIN_PATH)/cni: $(wildcard plugins/cni/*.go)
+	$(Q)echo "Building $@..."; \
+	cd $(dir $<) && $(GO_BUILD) -o $@ .
 
 $(BIN_PATH)/logger: $(wildcard plugins/logger/*.go)
 	$(Q)echo "Building $@..."; \
@@ -175,3 +179,7 @@ install-protoc-dependencies:
 
 install-ginkgo:
 	$(Q)$(GO_INSTALL) -mod=mod github.com/onsi/ginkgo/v2/ginkgo
+
+
+cp-to-nuc:
+	scp -r ./build/bin airren@nuc-ubuntu22.sh.intel.com:~
